@@ -1,7 +1,7 @@
 # Civil service examination Ranking Considering Heteroidentity Quotas
 
 ## About the Project
-This project automates the ranking process for a Civil service examination Ranking considering heteroidentity quotas such as Brown, Disability (PwD), and Indigenous candidates. It utilizes Python to process data from Excel files containing candidate classifications and competition position indexes. The final output is a ranked list of candidates according to specified quotas and competition rules.
+This project automates the ranking process for a Civil service examination considering heteroidentity quotas such as Brown, Disability (PwD), and Indigenous candidates. It utilizes Python to process data from Excel files containing candidate classifications and competition position indexes. The final output is a ranked list of candidates according to specified quotas and competition rules.
 
 ## Key Features ✨
 * **Automated Ranking**: Automatically selects and ranks candidates based on predefined quotas like Brown, Disability (PwD), and Indigenous categories.
