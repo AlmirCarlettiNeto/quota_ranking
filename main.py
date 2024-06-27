@@ -43,11 +43,26 @@ Obs.:
 2) Apenas 7/44 pcds aprovados.
 '''
 
-file_classification = 'database/obj_preliminar.xlsx'
+file_classification_ac = 'database/final/ac.xlsx'
+file_classification_pcd = 'database/final/pcd.xlsx'
+file_classification_ppp = 'database/final/ppp.xlsx'
 file_positions_index = 'database/positions_index.xlsx'
 
+df_ac = pd.read_excel(file_classification_ac, dtype=str)
+df_pcd = pd.read_excel(file_classification_pcd, dtype=str)
+df_ppp = pd.read_excel(file_classification_ppp, dtype=str)
+
+df_classification = pd.concat([df_ac, df_pcd, df_ppp])
+df_classification = df_classification.sort_values(by=['NOTA FINAL', 'CE'], ascending=[False, False])
+df_classification = df_classification.rename(columns={'POSIÇÃO': 'POSIÇÃO PRÉVIA (SEPARADA POR GRUPO)'})
+ordered_columns = [
+    'POSIÇÃO PRÉVIA (SEPARADA POR GRUPO)', 'INSCRIÇÃO', 'NOME',
+                   'LP', 'RLM', 'CB', 'CE', 'AVTI', 'NOTA FINAL', 'MODALIDADE'
+]
+df_classification = df_classification[ordered_columns]
+df_classification.to_csv('teste.csv')
+
 # leitura dos dados
-df_classification = pd.read_excel(file_classification, dtype=str)
 df_positions_index = pd.read_excel(file_positions_index)
 
 # criando os dataframes exclusivos para cada modalidade
@@ -56,56 +71,43 @@ df_classification_negro = df_classification[df_classification['MODALIDADE'] == '
 df_classification_indio = df_classification[df_classification['MODALIDADE'] == 'Indígenas']
 df_classification_pcd = df_classification[df_classification['MODALIDADE'] == 'PcD - Pessoa com Deficiência']
 
-
-def choose_applicant(vancacy_type, df_classification_ampla, df_classification_negro, df_classification_indio,
-                     df_classification_pcd):  # essa função retorna a 1a linha do DataFrame filtrado como uma Series
-    if vancacy_type == 'Ampla' and not df_classification_ampla.empty:
+def choose_applicant(vacancy_type, df_classification_ampla, df_classification_negro, df_classification_indio, df_classification_pcd):
+    if vacancy_type == 'Ampla' and not df_classification_ampla.empty:
         return df_classification_ampla.iloc[0]
-    elif vancacy_type == 'Negro' and not df_classification_negro.empty:
+    elif vacancy_type == 'Negro' and not df_classification_negro.empty:
         return df_classification_negro.iloc[0]
-    elif vancacy_type == 'Indio' and not df_classification_indio.empty:
+    elif vacancy_type == 'Indio' and not df_classification_indio.empty:
         return df_classification_indio.iloc[0]
-    elif vancacy_type == 'PcD' and not df_classification_pcd.empty:
+    elif vacancy_type == 'PcD' and not df_classification_pcd.empty:
         return df_classification_pcd.iloc[0]
     return None
-
 
 # DataFrame com as colunas finais necessárias
 final_df = pd.DataFrame(columns=df_positions_index.columns.tolist() + df_classification.columns.tolist())
 
 # iterando pelas posições e preenchendo as informações
-for i, row in df_positions_index.iterrows():  # n vetorizei mas honestamente, mó sono pai... deixa isso quieto
-    candidate = choose_applicant(row['Tipo_Vaga'], df_classification_ampla, df_classification_negro,
-                                 df_classification_indio, df_classification_pcd)
+for i, row in df_positions_index.iterrows():
+    candidate = choose_applicant(row['Tipo_Vaga'], df_classification_ampla, df_classification_negro, df_classification_indio, df_classification_pcd)
     if candidate is None:
-        # preenchendo com candidato da ampla concorrência se não houver candidato para a cota especificada e como o núme
-        #_ro de inscrições da ampla foi bem maior que o comportado, não vou me preocupar com row['Tipo_Vaga'] = 'Ampla'
-        candidate = df_classification_ampla.iloc[0]
-        df_classification_ampla = df_classification_ampla[
-            df_classification_ampla['INSCRIÇÃO'] != candidate['INSCRIÇÃO']
-        ]
+        if not df_classification_ampla.empty:
+            candidate = df_classification_ampla.iloc[0]
+            df_classification_ampla = df_classification_ampla[df_classification_ampla['INSCRIÇÃO'] != candidate['INSCRIÇÃO']]
+        else:
+            continue  # Não há candidatos disponíveis
     else:
-        # removendo o canditado escolhido do dataframe correspondente
         if row['Tipo_Vaga'] == 'Ampla':
-            df_classification_ampla = df_classification_ampla[
-                df_classification_ampla['INSCRIÇÃO'] != candidate['INSCRIÇÃO']
-            ]
+            df_classification_ampla = df_classification_ampla[df_classification_ampla['INSCRIÇÃO'] != candidate['INSCRIÇÃO']]
         elif row['Tipo_Vaga'] == 'Negro':
-            df_classification_negro = df_classification_negro[
-                df_classification_negro['INSCRIÇÃO'] != candidate['INSCRIÇÃO']
-            ]
+            df_classification_negro = df_classification_negro[df_classification_negro['INSCRIÇÃO'] != candidate['INSCRIÇÃO']]
         elif row['Tipo_Vaga'] == 'Indio':
-            df_classification_indio = df_classification_indio[
-                df_classification_indio['INSCRIÇÃO'] != candidate['INSCRIÇÃO']
-            ]
+            df_classification_indio = df_classification_indio[df_classification_indio['INSCRIÇÃO'] != candidate['INSCRIÇÃO']]
         elif row['Tipo_Vaga'] == 'PcD':
             df_classification_pcd = df_classification_pcd[df_classification_pcd['INSCRIÇÃO'] != candidate['INSCRIÇÃO']]
 
-    # salvando a linha no DataFrame final
     final_df = pd.concat([final_df, pd.DataFrame(pd.concat([row, candidate]).to_frame().T)])
 
-# sem tempo e energia para trackear a perda dos 0s à esquerda do nr de inscrição, só vou completar com 0 mesmo...
+# Adicionando zeros à esquerda no número de inscrição
 final_df['INSCRIÇÃO'] = final_df['INSCRIÇÃO'].str.zfill(7)
 
-# só sarvar agora papuxo
-final_df.to_excel('database/df/resultado_preliminar_objetivas_ordenado_cota.xlsx', index=False)
+# Salvando o resultado final
+final_df.to_excel('database/final/resultado_final_ordenado_cota.xlsx', index=False)
